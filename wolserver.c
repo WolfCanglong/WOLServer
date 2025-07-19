@@ -54,8 +54,6 @@ int main() {
                    (struct sockaddr*)&broadaddr, sizeof(broadaddr));
         }
     }
-
     close(sockfd);
-    printf("Server Stop\n");
     return EXIT_SUCCESS;
 }
