@@ -35,7 +35,7 @@ ssh root@<openwrt_ip> chmod +x /etc/wolserver
 
 ```
 #!/bin/sh /etc/rc.common  
-# 文件：/etc/init.d/hkewol  
+# /etc/init.d/hkewol  
 
 START=99  
 USE_PROCD=1  
