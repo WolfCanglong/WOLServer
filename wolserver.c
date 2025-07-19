@@ -55,5 +55,6 @@ int main() {
         }
     }
     close(sockfd);
+    printf("Server Stop\n");
     return EXIT_SUCCESS;
 }
