@@ -3,7 +3,7 @@ name: Build WOLServer (C)
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
