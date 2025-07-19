@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,7 +15,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Install build tools
-        run: sudo apt-get update && sudo apt-get install -y build-essential
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
 
       - name: Compile WOLServer
         run: |
@@ -22,7 +25,7 @@ jobs:
           strip wolserver
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wolserver-openwrt-x86
           path: wolserver
