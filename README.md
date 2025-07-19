@@ -21,8 +21,40 @@
 
 ## 部署
 
-1. 在 GitHub 仓库页面 → **Actions** → 下载 `wolserver-openwrt-x86`  
-2. 将可执行文件复制到 OpenWrt 路由器：
-   ```bash
-   scp wolserver-openwrt-x86 root@<openwrt_ip>:/usr/bin/wolserver
-   ssh root@<openwrt_ip> chmod +x /usr/bin/wolserver
+将 wolserver 上传到 OpenWrt 路由器的 `/etc` 目录，并赋予执行权限：  
+```
+scp wolserver root@<openwrt_ip>:/etc/wolserver  
+ssh root@<openwrt_ip> chmod +x /etc/wolserver  
+```
+
+确保路由器 LAN 接口可以发送广播包。
+
+## OpenWrt 启动脚本
+
+把下面内容保存为 `/etc/init.d/hkewol`，然后赋予可执行权限：
+
+```
+#!/bin/sh /etc/rc.common  
+# 文件：/etc/init.d/hkewol  
+
+START=99  
+USE_PROCD=1  
+
+DAEMON=hkewol  
+PROG="/etc/wolserver"  
+
+start_service() {  
+    echo "Starting WOLServer..."  
+    procd_open_instance $DAEMON  
+    procd_set_param command $PROG  
+    procd_set_param pidfile /var/run/${DAEMON}.pid  
+    procd_set_param respawn 3  
+    procd_close_instance  
+}  
+```
+
+启用并启动服务：  
+```
+/etc/init.d/hkewol enable  
+/etc/init.d/hkewol start
+```
