@@ -1,32 +1,41 @@
-name: Build WOLServer (C) for OpenWrt
+name: Release WOLServer
 
 on:
   push:
-    branches:
-      - master
-  workflow_dispatch:
+    tags:
+      - 'v*'
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install musl toolchain
-      run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: 安装静态编译工具链
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
 
-    - name: Compile with musl (静态链接)
-      run: |
-        musl-gcc -Os -static -o wolserver wolserver.c
-        strip wolserver
+      - name: 编译静态二进制
+        run: |
+          musl-gcc -Os -static -o wolserver wolserver.c
+          strip wolserver
 
-    - name: Verify binary
-      run: file wolserver
+      - name: 创建 GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        id: create_release
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: wolserver-openwrt-x86
-        path: wolserver
+      - name: 上传 Release 组件
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./wolserver
+          asset_name: wolserver-openwrt-x86
+          asset_content_type: application/octet-stream
