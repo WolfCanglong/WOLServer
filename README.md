@@ -58,3 +58,12 @@ start_service() {
 /etc/init.d/hkewol enable  
 /etc/init.d/hkewol start
 ```
+记得在防火墙放通本机2223的UDP端口(可以直接界面里配了 我只是举个例子)
+```
+config rule
+	option name 'hkewol'
+	list proto 'udp'
+	option dest_port '2223'
+	option target 'ACCEPT'
+	option src 'wan'
+```
