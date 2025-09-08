@@ -14,23 +14,19 @@ jobs:
     name: Build (${{ matrix.arch }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: x86_64
             sdk: https://downloads.openwrt.org/releases/23.05.3/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-            toolprefix: x86_64-openwrt-linux-musl-
           - arch: armv7
             sdk: https://downloads.openwrt.org/releases/23.05.3/targets/armsr/armv7/openwrt-sdk-23.05.3-armsr-armv7_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
-            toolprefix: arm-openwrt-linux-musleabi-
           - arch: armv8
             sdk: https://downloads.openwrt.org/releases/23.05.3/targets/armsr/armv8/openwrt-sdk-23.05.3-armsr-armv8_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-            toolprefix: aarch64-openwrt-linux-musl-
           - arch: mipsel
             sdk: https://downloads.openwrt.org/releases/23.05.3/targets/ramips/mt7621/openwrt-sdk-23.05.3-ramips-mt7621_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-            toolprefix: mipsel-openwrt-linux-musl-
           - arch: mips
             sdk: https://downloads.openwrt.org/releases/23.05.3/targets/malta/be/openwrt-sdk-23.05.3-malta-be_gcc-12.3.0_musl.Linux-x86_64.tar.xz
-            toolprefix: mips-openwrt-linux-musl-
 
     steps:
       - name: Checkout code
@@ -48,8 +44,12 @@ jobs:
           set -e
           TOOLCHAIN=$(find sdk/staging_dir/toolchain-* -type d -name bin)
           export PATH="$TOOLCHAIN:$PATH"
-          ${{ matrix.toolprefix }}gcc -Os -static -o wolserver-${{ matrix.arch }} wolserver.c
-          ${{ matrix.toolprefix }}strip wolserver-${{ matrix.arch }}
+          # 自动探测交叉编译器前缀
+          GCC_BIN=$(ls "$TOOLCHAIN"/*-gcc | head -n1)
+          PREF=$(basename "$GCC_BIN" | sed 's/gcc$//')
+          echo "Detected tool prefix: $PREF"
+          ${PREF}gcc -Os -static -o wolserver-${{ matrix.arch }} wolserver.c
+          ${PREF}strip wolserver-${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
