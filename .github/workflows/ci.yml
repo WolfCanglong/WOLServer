@@ -1,50 +1,73 @@
-# 文件：.github/workflows/ci.yml
-name: CI Build & Release
+name: CI Build & Release (Multi-Arch OpenWrt)
 
 permissions:
-  contents: write   # 给 GITHUB_TOKEN 写 Release 的权限
+  contents: write
 
 on:
   push:
-    branches: [ master ]    # 普通 push 只触发 build
-    tags:     [ 'v*' ]      # 打 v* 标签时触发 build + release
-  workflow_dispatch:        # 支持手动触发（默认只跑 build）
+    branches: [ master ]
+    tags:     [ 'v*' ]
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build WOLServer
+    name: Build (${{ matrix.arch }})
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            sdk: https://downloads.openwrt.org/releases/23.05.3/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            toolprefix: x86_64-openwrt-linux-musl-
+          - arch: armv7
+            sdk: https://downloads.openwrt.org/releases/23.05.3/targets/armvirt/32/openwrt-sdk-23.05.3-armvirt-32_gcc-12.3.0_musl_eabi.Linux-x86_64.tar.xz
+            toolprefix: arm-openwrt-linux-musleabi-
+          - arch: aarch64
+            sdk: https://downloads.openwrt.org/releases/23.05.3/targets/armvirt/64/openwrt-sdk-23.05.3-armvirt-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            toolprefix: aarch64-openwrt-linux-musl-
+          - arch: mipsel
+            sdk: https://downloads.openwrt.org/releases/23.05.3/targets/malta/le/openwrt-sdk-23.05.3-malta-le_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            toolprefix: mipsel-openwrt-linux-musl-
+          - arch: mips
+            sdk: https://downloads.openwrt.org/releases/23.05.3/targets/malta/be/openwrt-sdk-23.05.3-malta-be_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+            toolprefix: mips-openwrt-linux-musl-
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Install build tools
+      - name: Download OpenWrt SDK
         run: |
-          sudo apt-get update
-          sudo apt-get install -y musl-tools build-essential
+          wget -q ${{ matrix.sdk }} -O sdk.tar.xz
+          tar -xf sdk.tar.xz
+          mv openwrt-sdk-* sdk
 
-      - name: Compile static binary
+      - name: Build static binary
         run: |
-          musl-gcc -Os -static -o wolserver wolserver.c
-          strip wolserver
+          TOOLCHAIN=$(find sdk/staging_dir/toolchain-* -type d -name bin)
+          export PATH="$TOOLCHAIN:$PATH"
+          ${matrix.toolprefix}gcc -Os -static -o wolserver-${{ matrix.arch }} wolserver.c
+          ${matrix.toolprefix}strip wolserver-${{ matrix.arch }}
 
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wolserver
-          path: wolserver
+          name: wolserver-${{ matrix.arch }}
+          path: wolserver-${{ matrix.arch }}
 
   release:
-    name: Create Release on Tag
+    name: Create Release
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')   # 仅 tag 事件才跑
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifact
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: wolserver
           path: .
+
+      - name: List files
+        run: ls -lR .
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -53,4 +76,9 @@ jobs:
         with:
           tag_name:   ${{ github.ref_name }}
           name:       Release ${{ github.ref_name }}
-          files:      wolserver
+          files: |
+            wolserver-x86_64/wolserver-x86_64
+            wolserver-armv7/wolserver-armv7
+            wolserver-aarch64/wolserver-aarch64
+            wolserver-mipsel/wolserver-mipsel
+            wolserver-mips/wolserver-mips
