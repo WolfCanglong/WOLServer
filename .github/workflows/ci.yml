@@ -38,16 +38,18 @@ jobs:
 
       - name: Download OpenWrt SDK
         run: |
-          wget -q ${{ matrix.sdk }} -O sdk.tar.xz
+          set -e
+          wget -q "${{ matrix.sdk }}" -O sdk.tar.xz
           tar -xJf sdk.tar.xz
           mv openwrt-sdk-* sdk
 
       - name: Build static binary
         run: |
+          set -e
           TOOLCHAIN=$(find sdk/staging_dir/toolchain-* -type d -name bin)
           export PATH="$TOOLCHAIN:$PATH"
-          ${matrix.toolprefix}gcc -Os -static -o wolserver-${{ matrix.arch }} wolserver.c
-          ${matrix.toolprefix}strip wolserver-${{ matrix.arch }}
+          ${{ matrix.toolprefix }}gcc -Os -static -o wolserver-${{ matrix.arch }} wolserver.c
+          ${{ matrix.toolprefix }}strip wolserver-${{ matrix.arch }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
